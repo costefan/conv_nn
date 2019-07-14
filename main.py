@@ -1,13 +1,11 @@
 from __future__ import print_function
+
 import argparse
+
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from simple_conv_net_func import diff_mse
-from simple_conv_net_func import conv2d_scalar, pool2d_scalar, relu_scalar, reshape_scalar, fc_layer_scalar
-from simple_conv_net_func import conv2d_vector, pool2d_vector, relu_vector, reshape_vector, fc_layer_vector
+
 from neural_net.conv_net import SimpleConvNet, train, test
 
 
@@ -38,6 +36,7 @@ def main(args):
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(args, model, device, test_loader)
+
     if (args.save_model):
         torch.save(model.state_dict(), "mnist_cnn.pt")
 
@@ -45,7 +44,7 @@ def main(args):
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=1, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')

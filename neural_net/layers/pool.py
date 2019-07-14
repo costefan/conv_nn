@@ -1,22 +1,34 @@
 from .base import BaseLayer
 import torch
 
+from neural_net.utils import im_2_col
+
 
 def max_pool_vector(a, device, layer_config: dict):
-    X_batch, filters_num, X_h, X_w = a.shape
+    batch_size, filters_num, X_h, X_w = a.shape
+
     output_dim_x = X_h // layer_config['stride_x']
     output_dim_y = X_h // layer_config['stride_y']
+
+    reshaped_col = im_2_col(a,
+                            layer_config['stride_x'],
+                            device,
+                            stride=layer_config['stride_x'])
+    max_vals = reshaped_col.max(dim=0)[0]
+
+    return max_vals.view(batch_size, filters_num, output_dim_x, output_dim_y)
 
 
 def max_pool_scalar(a, device, layer_config: dict):
-    X_batch, filters_num, X_h, X_w = a.shape
+    batch_size, filters_num, X_h, X_w = a.shape
     output_dim_x = X_h // layer_config['stride_x']
     output_dim_y = X_h // layer_config['stride_y']
-    res = torch.zeros(X_batch, filters_num,
+    res = torch.zeros(batch_size,
+                      filters_num,
                       output_dim_x,
                       output_dim_y)
 
-    for img in range(X_batch):
+    for img in range(batch_size):
         for filter_ix in range(filters_num):
             for i in range(output_dim_x):
                 for j in range(output_dim_y):

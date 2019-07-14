@@ -4,7 +4,9 @@ import torch
 
 
 def fc_vector(a, weight, bias, device):
-    pass
+    res = a.mm(weight.t()) + bias
+
+    return res.to(device)
 
 
 def fc_scalar(a, weight, bias, device):

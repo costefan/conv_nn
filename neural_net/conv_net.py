@@ -13,6 +13,16 @@ from neural_net.layers import (
     max_pool_scalar, max_pool_vector,
     fc_scalar, fc_vector
 )
+from enum import Enum
+
+
+class NNImplementation(Enum):
+    TORCH = 1
+    VECTORIZED = 2
+    SCALAR = 3
+
+
+DEFAULT_IMPL = NNImplementation.VECTORIZED
 
 
 class SimpleConvNet(nn.Module):
@@ -66,23 +76,51 @@ class SimpleConvNet(nn.Module):
                           bias=self.fc_layer1.bias,
                           device=self.device)
 
-        z_fc1_ = self.fc_layer1(z_pool_reshaped)
-
-        print(z_fc1_.shape)
-        print(z_fc1.shape)
-        print(diff_mse(z_fc1_, z_fc1))
-
         z_relu = relu_scalar(z_fc1, self.device)
         z_fc2 = self.fc_layer2(z_relu)
         y = F.softmax(z_fc2, dim=1)
 
         return y
 
-    def forward_vectorized(self):
-        pass
+    def forward_vectorized(self, x):
+        z_conv = conv_vector(x,
+                             conv_weight=self.conv_layer.weight,
+                             conv_bias=self.conv_layer.bias,
+                             device=self.device,
+                             layer_config={
+                                 'stride': 1,
+                                 'padding': 0
+                             })
 
-    def forward(self, x):
-        return self.forward_scalar(x)
+        z_pool = max_pool_vector(z_conv,
+                                 device=self.device,
+                                 layer_config={'stride_x': 2,
+                                               'stride_y': 2},)
+
+        z_pool_reshaped = z_pool.view(-1, 20 * 12 * 12)
+        z_fc1 = fc_vector(z_pool_reshaped,
+                          weight=self.fc_layer1.weight,
+                          bias=self.fc_layer1.bias,
+                          device=self.device)
+
+        z_relu = F.relu(z_fc1)
+        z_fc2 = self.fc_layer2(z_relu)
+        y = F.softmax(z_fc2, dim=1)
+
+        return y
+
+    def forward(self, x, implementation=DEFAULT_IMPL):
+        """Three implementation of 
+        :param x: 
+        :param implementation: 
+        :return: 
+        """
+        if implementation == NNImplementation.SCALAR:
+            return self.forward_scalar(x)
+        elif implementation == NNImplementation.TORCH:
+            return self.forward_pytorch(x)
+        else:
+            return self.forward_vectorized(x)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
