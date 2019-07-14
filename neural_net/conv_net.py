@@ -5,13 +5,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from simple_conv_net_func import diff_mse
-from simple_conv_net_func import conv2d_scalar, pool2d_scalar, relu_scalar, reshape_scalar, fc_layer_scalar
-from simple_conv_net_func import conv2d_vector, pool2d_vector, relu_vector, reshape_vector, fc_layer_vector
+from neural_net.utils import diff_mse
 
 from neural_net.layers import (
     conv_scalar, conv_vector,
     relu_scalar, relu_vector,
+    max_pool_scalar, max_pool_vector,
+    fc_scalar, fc_vector
 )
 
 
@@ -33,18 +33,16 @@ class SimpleConvNet(nn.Module):
 
         self.to(device)
 
-    def forward(self, x):
+    def forward_pytorch(self, x):
         # When your implementations will be ready, replace standard Pytorch
         # implementation by your custom functions, like:
         #
         # z_conv = conv2d_vector(x, conv_weight=self.conv_layer.weight,
         #                       conv_bias=self.conv_layer.bias,
         #                       device=self.device)
-        self.conv_layer_scalar(x,
-                               conv_weight=self.conv_layer.weight,
-                               conv_bias=self.conv_layer.bias,
-                               device=self.device)
+        # self.conv_layer(x)
         z_conv = self.conv_layer(x,)
+
         z_pool = F.max_pool2d(z_conv, 2, 2)
         z_pool_reshaped = z_pool.view(-1, 20 * 12 * 12)
         z_fc1 = self.fc_layer1(z_pool_reshaped)
@@ -53,6 +51,44 @@ class SimpleConvNet(nn.Module):
         y = F.softmax(z_fc2, dim=1)
 
         return y
+
+    def forward_scalar(self, x):
+        z_conv = conv_scalar(x,
+                             conv_weight=self.conv_layer.weight,
+                             conv_bias=self.conv_layer.bias,
+                             device=self.device,
+                             layer_config={
+                                 'stride': 1,
+                                 'padding': 0
+                             })
+        z_pool = max_pool_scalar(z_conv,
+                                 device=self.device,
+                                 layer_config={'stride_x': 2,
+                                               'stride_y': 2},)
+        z_pool_reshaped = z_pool.view(-1, 20 * 12 * 12)
+
+        z_fc1 = fc_scalar(z_pool_reshaped,
+                          weight=self.fc_layer1.weight,
+                          bias=self.fc_layer1.bias,
+                          device=self.device)
+
+        z_fc1_ = self.fc_layer1(z_pool_reshaped)
+
+        print(z_fc1_.shape)
+        print(z_fc1.shape)
+        print(diff_mse(z_fc1_, z_fc1))
+
+        z_relu = relu_scalar(z_fc1, self.device)
+        z_fc2 = self.fc_layer2(z_relu)
+        y = F.softmax(z_fc2, dim=1)
+
+        return y
+
+    def forward_vectorized(self):
+        pass
+
+    def forward(self, x):
+        return self.forward_scalar(x)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
