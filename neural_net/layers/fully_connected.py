@@ -8,17 +8,14 @@ def fc_vector(a, weight, bias, device):
 
 
 def fc_scalar(a, weight, bias, device):
-    print('Input image dims: {}'.format(a.shape))
-    print('Weight dims: {}'.format(weight.shape))
-    print('Bias dims: {}'.format(bias.shape))
-    X_batch, X_size = a.shape
-    W_h, W_w = weight.shape
+    batch_size, _ = a.shape
+    H, W = weight.shape
 
-    res = torch.zeros(X_batch, W_h)
+    result = torch.empty(batch_size, H)
 
-    for img in range(X_batch):
-        for w_i in range(W_h):
-            for w_j in range(W_w):
-                res[img, w_i] += weight[w_i, w_j] * a[img, w_j] + bias[w_i]
+    for n in range(batch_size):
+        for j in range(H):
+            for i in range(W):
+                result[n, j] += weight[j, i] * a[n, i] + bias[j]
 
-    return res.to(device)
+    return result.to(device)

@@ -34,13 +34,7 @@ class SimpleConvNet(nn.Module):
         self.to(device)
 
     def forward_pytorch(self, x):
-        # When your implementations will be ready, replace standard Pytorch
-        # implementation by your custom functions, like:
-        #
-        # z_conv = conv2d_vector(x, conv_weight=self.conv_layer.weight,
-        #                       conv_bias=self.conv_layer.bias,
-        #                       device=self.device)
-        # self.conv_layer(x)
+
         z_conv = self.conv_layer(x,)
 
         z_pool = F.max_pool2d(z_conv, 2, 2)
