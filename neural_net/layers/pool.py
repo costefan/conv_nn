@@ -12,6 +12,7 @@ def max_pool_vector(a, device, layer_config: dict):
 
     reshaped_col = im_2_col(a,
                             layer_config['stride_x'],
+                            layer_config['stride_y'],
                             device,
                             stride=layer_config['stride_x'])
     max_vals = reshaped_col.max(dim=0)[0]

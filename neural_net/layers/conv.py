@@ -21,7 +21,7 @@ def conv_vector(x_in, conv_weight, conv_bias, device, layer_config: dict):
                                                       layer_config['padding'],
                                                       layer_config['stride']))
 
-    x_col = im_2_col(x_in, K_h, device,
+    x_col = im_2_col(x_in, K_h, K_w, device,
                      layer_config['stride'],
                      layer_config['padding'])
 

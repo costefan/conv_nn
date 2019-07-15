@@ -22,7 +22,7 @@ class NNImplementation(Enum):
     SCALAR = 3
 
 
-DEFAULT_IMPL = NNImplementation.VECTORIZED
+DEFAULT_IMPL = NNImplementation.SCALAR
 
 
 class SimpleConvNet(nn.Module):
@@ -57,30 +57,46 @@ class SimpleConvNet(nn.Module):
         return y
 
     def forward_scalar(self, x):
-        z_conv = conv_scalar(x,
-                             conv_weight=self.conv_layer.weight,
-                             conv_bias=self.conv_layer.bias,
-                             device=self.device,
-                             layer_config={
-                                 'stride': 1,
-                                 'padding': 0
-                             })
-        z_pool = max_pool_scalar(z_conv,
+        z_conv_torch = self.conv_layer(x,)
+
+        z_pool_torch = F.max_pool2d(z_conv_torch, 2, 2)
+        z_pool_reshaped_torch = z_pool_torch.view(-1, 20 * 12 * 12)
+        z_fc1_torch = self.fc_layer1(z_pool_reshaped_torch)
+
+        with torch.no_grad():
+            z_conv = conv_scalar(x,
+                                 conv_weight=self.conv_layer.weight,
+                                 conv_bias=self.conv_layer.bias,
                                  device=self.device,
-                                 layer_config={'stride_x': 2,
-                                               'stride_y': 2},)
-        z_pool_reshaped = z_pool.view(-1, 20 * 12 * 12)
+                                 layer_config={
+                                     'stride': 1,
+                                     'padding': 0
+                                 })
+            z_pool = max_pool_scalar(z_conv,
+                                     device=self.device,
+                                     layer_config={'stride_x': 2,
+                                                   'stride_y': 2},)
+            z_pool_reshaped = z_pool.view(-1, 20 * 12 * 12)
 
-        z_fc1 = fc_scalar(z_pool_reshaped,
-                          weight=self.fc_layer1.weight,
-                          bias=self.fc_layer1.bias,
-                          device=self.device)
+            z_fc1 = fc_scalar(z_pool_reshaped,
+                              weight=self.fc_layer1.weight,
+                              bias=self.fc_layer1.bias,
+                              device=self.device)
+            print('Mse diff: ')
 
-        z_relu = relu_scalar(z_fc1, self.device)
-        z_fc2 = self.fc_layer2(z_relu)
-        y = F.softmax(z_fc2, dim=1)
+            print("Conv layer: {}, \n \t"
+                  "Pool layer: {}, \n \t"
+                  "Reshape layer: {}, \n \t"
+                  "FC layer: {}".format(diff_mse(z_conv, z_conv_torch),
+                                        diff_mse(z_pool, z_pool_torch),
+                                        diff_mse(z_pool_reshaped, z_pool_reshaped_torch),
+                                        diff_mse(z_fc1, z_fc1_torch)))
 
-        return y
+            z_relu = relu_scalar(z_fc1, self.device)
+            z_fc2 = self.fc_layer2(z_relu)
+            y = F.softmax(z_fc2, dim=1)
+
+            return y
 
     def forward_vectorized(self, x):
         z_conv = conv_vector(x,
